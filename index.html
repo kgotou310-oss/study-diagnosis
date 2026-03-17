@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたにぴったりの勉強法診断</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --main-blue: #4A90E2;
+            --bg-blue: #E3F2FD;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: var(--bg-blue);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: var(--main-blue); text-align: center; font-size: 1.5rem; }
+        .description { font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+        .question-group { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .question-label { display: flex; align-items: center; cursor: pointer; font-size: 1.1rem; }
+        input[type="checkbox"] { transform: scale(1.5); margin-right: 15px; cursor: pointer; }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--main-blue);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { opacity: 0.8; }
+        #result { display: none; margin-top: 20px; text-align: center; }
+        .result-icon { font-size: 4rem; margin-bottom: 10px; }
+        .result-title { font-size: 1.4rem; color: var(--main-blue); font-weight: bold; }
+        .advice { text-align: left; background: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .loading { display: none; color: #666; font-size: 0.8rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 あなたにぴったりの勉強法診断</h1>
+    <p class="description">自分に当てはまるものにチェックを入れてね！</p>
+
+    <div id="quiz-form">
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="1"> 教科書の図やイラストに目が止まることが多い</label></div>
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="1"> カラーペンやマーカーを使ってノートを取るのが好き</label></div>
+        
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="2"> 授業を聞いているだけで内容がスッと入ってくる</label></div>
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="2"> 音読すると内容を覚えやすいと感じる</label></div>
+
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="3"> 実際に手を動かしてやってみることで理解できる</label></div>
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="3"> 体験したことや実験の内容はよく覚えている</label></div>
+
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="4"> 教科書や参考書を読んで自分でまとめるのが好き</label></div>
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="4"> 文章を箇条書きやリストに整理するのが得意</label></div>
+
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="5"> 「なぜそうなるのか」理由がわかると納得できる</label></div>
+        <div class="question-group"><label class="question-label"><input type="checkbox" class="q-item" data-type="5"> 仕組みや原理から理解しようとする方だ</label></div>
+
+        <button onclick="calculateResult()">診断結果を見る！</button>
+        <p id="loading-msg" class="loading">結果を記録中...</p>
+    </div>
+
+    <div id="result">
+        <div class="result-icon" id="res-icon"></div>
+        <div class="result-title" id="res-title"></div>
+        <p id="res-desc"></p>
+        <div class="advice">
+            <strong>💡 おすすめ勉強法:</strong>
+            <ul id="res-advice"></ul>
+        </div>
+        <button style="margin-top:20px; background:#666;" onclick="location.reload()">もう一度診断する</button>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 後でGASのURLをここに貼る
+    const GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+
+    const types = {
+        1: { name: "視覚型学習者", icon: "👁️", desc: "図やグラフで理解するのが得意。カラフルなノートを作るのがおすすめ！", advice: ["マインドマップを使って情報を整理しよう", "カラーペンで重要な箇所を色分けするのが効果的", "YouTube動画や図解を積極的に活用しよう"] },
+        2: { name: "聴覚型学習者", icon: "🎧", desc: "聞いて理解するのが得意。音読や講義形式がおすすめ！", advice: ["声に出して読む「音読勉強法」が効果的", "友達に説明することで理解が深まる", "軽いBGMをかけながら勉強すると集中しやすい"] },
+        3: { name: "体験型学習者", icon: "✍️", desc: "実際に書いたり体を動かしたりすることで理解が深まるタイプ。反復練習や実験が向いています！", advice: ["何度も書いて覚える「反復書き取り」が効果的", "実験や体験型の学習に積極的に参加しよう", "ポモドーロ法（25分集中+5分休憩）で集中力UP"] },
+        4: { name: "読み書き型学習者", icon: "📖", desc: "文章を読んで整理することが得意。ノートにまとめることで理解が深まるタイプです。", advice: ["丁寧にノートを取り、自分の言葉でまとめ直そう", "箇条書きやリストで情報を整理するのが効果的", "問題を自分で作って解く「自作問題法」がおすすめ"] },
+        5: { name: "論理型学習者", icon: "🧩", desc: "理由や仕組みから理解するのが得意。「なぜ？」を追求することで力を発揮するタイプです。", advice: ["「なぜそうなるのか」を徹底的に調べてみよう", "原理・原則から覚えることで応用力がつく", "問題を解く前に「解法の流れ」を考える習慣をつけよう"] }
+    };
+
+    async function calculateResult() {
+        const checks = document.querySelectorAll('.q-item');
+        let scores = { 1:0, 2:0, 3:0, 4:0, 5:0 };
+        
+        checks.forEach(chk => {
+            if(chk.checked) scores[chk.dataset.type]++;
+        });
+
+        // 最大スコアのタイプを決定
+        let winner = Object.keys(scores).reduce((a, b) => scores[a] >= scores[b] ? a : b);
+        
+        displayResult(winner);
+        await sendDataToGAS(winner, scores);
+    }
+
+    function displayResult(typeId) {
+        document.getElementById('quiz-form').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        
+        const data = types[typeId];
+        document.getElementById('res-icon').innerText = data.icon;
+        document.getElementById('res-title').innerText = data.name;
+        document.getElementById('res-desc').innerText = data.desc;
+        
+        const adviceList = document.getElementById('res-advice');
+        adviceList.innerHTML = '';
+        data.advice.forEach(text => {
+            let li = document.createElement('li');
+            li.innerText = text;
+            adviceList.appendChild(li);
+        });
+    }
+
+    async function sendDataToGAS(winner, scores) {
+        document.getElementById('loading-msg').style.display = 'block';
+        
+        // 地域情報とデバイス情報の取得
+        let locationData = { city: '不明', region: '不明' };
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            const json = await res.json();
+            locationData.city = json.city;
+            locationData.region = json.region;
+        } catch (e) { console.error("Location fetch error", e); }
+
+        const payload = {
+            timestamp: new Date().toLocaleString('ja-JP'),
+            result: types[winner].name,
+            scores: scores,
+            location: `${locationData.region} ${locationData.city}`,
+            device: getDeviceInfo()
+        };
+
+        // 🚀 CORS対策済みの送信方法
+        const formData = new URLSearchParams();
+        formData.append('data', JSON.stringify(payload));
+
+        try {
+            await fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            });
+            console.log("Data sent successfully");
+        } catch (e) {
+            console.error("Data send error", e);
+        }
+        document.getElementById('loading-msg').innerText = "記録完了！";
+    }
+
+    function getDeviceInfo() {
+        const ua = navigator.userAgent;
+        if (ua.indexOf('iPhone') > 0 || ua.indexOf('Android') > 0 && ua.indexOf('Mobile') > 0) return 'スマホ';
+        if (ua.indexOf('iPad') > 0 || ua.indexOf('Android') > 0) return 'タブレット';
+        return 'PC';
+    }
+</script>
+
+</body>
+</html>
